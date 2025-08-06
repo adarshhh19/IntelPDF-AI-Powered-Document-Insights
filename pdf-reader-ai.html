@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI PDF Insights</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+
+      /* 🌈 Animated gradient background */
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .container {
+      background: #ffffff;
+      max-width: 700px;
+      width: 90%;
+      margin-top: 50px;
+      padding: 30px 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] {
+      margin-top: 15px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    button {
+      background-color: #3f51b5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 20px;
+      margin-top: 15px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #303f9f;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    textarea {
+      width: 100%;
+      height: 220px;
+      padding: 12px;
+      margin-top: 10px;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📄 AI PDF Insights</h2>
+
+    <input type="file" id="pdfInput" accept=".pdf" />
+    <button onclick="extractAndSend()">Get AI Summary</button>
+
+    <h3>🔍 AI Summary:</h3>
+    <textarea id="aiOutput" readonly></textarea>
+  </div>
+
+  <script>
+    const apiKey = "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"; // Replace this with your OpenAI key
+
+    async function extractTextFromPDF(file) {
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = async function () {
+          try {
+            const typedArray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedArray).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              const strings = content.items.map(item => item.str);
+              fullText += strings.join(' ') + '\n';
+            }
+            resolve(fullText);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function extractAndSend() {
+      const file = document.getElementById('pdfInput').files[0];
+      const output = document.getElementById("aiOutput");
+
+      if (!file) {
+        alert("Please upload a PDF first!");
+        return;
+      }
+
+      output.value = "Reading PDF and sending to AI...";
+
+      try {
+        const pdfText = await extractTextFromPDF(file);
+
+        const prompt = `Please summarize the following PDF content:\n\n${pdfText.substring(0, 3000)}\n\n(Only first part sent to avoid token limits)`;
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+          })
+        });
+
+        const data = await response.json();
+
+        const aiReply = data.choices?.[0]?.message?.content || "No response.";
+        output.value = aiReply;
+
+      } catch (error) {
+        console.error(error);
+        output.value = "Something went wrong. Check console for details.";
+      }
+    }
+  </script>
+</body>
+</html>
