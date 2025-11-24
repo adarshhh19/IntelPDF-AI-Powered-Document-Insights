@@ -1,6 +1,6 @@
 # 📘 IntelPDF – AI PDF Summarizer
 
-A beginner-friendly AI-powered PDF reading tool that extracts key insights from uploaded PDF files using OpenAI's GPT model. Great for summarizing large documents in seconds
+A beginner-friendly AI-powered PDF reading tool that extracts key insights from uploaded PDF files using OpenAI's GPT model. Great for summarizing large documents in seconds.
 
 ## 🔍 Features
 
